@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>클레임 사례 대장</title>
+<style>
+  :root {
+    --ink: #1B2A3D;
+    --ink-soft: #445066;
+    --paper: #EDECE6;
+    --paper-card: #F8F7F3;
+    --line: #D8D4C8;
+    --stamp: #B8842E;
+    --stamp-bg: #F3E7D2;
+    --company: #9C4A3D;
+    --company-bg: #F3E1DC;
+    --customer: #3F6B52;
+    --customer-bg: #E1EBE4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    padding: 32px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .masthead h1 {
+    font-family: Georgia, "Nanum Myeongjo", serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -0.3px;
+  }
+  .masthead p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+  .new-btn {
+    background: var(--ink);
+    color: var(--paper-card);
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .new-btn:hover { background: #2A3C54; }
+
+  .conn-status {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+  .conn-status.err { color: var(--company); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .stat { background: var(--paper-card); padding: 14px 18px; }
+  .stat .num { font-size: 22px; font-weight: 700; font-family: Georgia, serif; }
+  .stat .label { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .toolbar input[type=text] {
+    flex: 1; min-width: 200px; padding: 9px 12px;
+    border: 1px solid var(--line); background: var(--paper-card);
+    border-radius: 3px; font-size: 14px; color: var(--ink);
+  }
+  .toolbar select {
+    padding: 9px 10px; border: 1px solid var(--line); background: var(--paper-card);
+    border-radius: 3px; font-size: 13px; color: var(--ink);
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--paper-card); border: 1px solid var(--line); }
+  thead th {
+    text-align: left; font-size: 12px; color: var(--ink-soft); font-weight: 600;
+    padding: 10px 12px; border-bottom: 1px solid var(--ink); white-space: nowrap;
+  }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  tbody tr:hover { background: #F1EFE7; cursor: pointer; }
+  tbody tr:last-child td { border-bottom: none; }
+  .num-cell { font-variant-numeric: tabular-nums; text-align: right; }
+  .note-cell { color: var(--ink-soft); max-width: 220px; }
+
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 3px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .tag-cat { background: var(--stamp-bg); color: var(--stamp); }
+  .tag-company { background: var(--company-bg); color: var(--company); }
+  .tag-customer { background: var(--customer-bg); color: var(--customer); }
+
+  .empty { padding: 60px 20px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(27,42,61,0.35); z-index: 50; justify-content: flex-end; }
+  .overlay.open { display: flex; }
+  .panel { width: 420px; max-width: 92vw; background: var(--paper-card); height: 100%; overflow-y: auto; padding: 24px; border-left: 2px solid var(--ink); }
+  .panel h2 { font-family: Georgia, serif; font-size: 19px; margin: 0 0 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--line); background: #fff;
+    border-radius: 3px; font-size: 14px; color: var(--ink); font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 50px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .liab-choice { display: flex; gap: 8px; }
+  .liab-btn { flex: 1; padding: 9px; border: 1px solid var(--line); background: #fff; border-radius: 3px; cursor: pointer; font-size: 13.5px; text-align: center; }
+  .liab-btn.active-company { background: var(--company-bg); border-color: var(--company); color: var(--company); font-weight: 600; }
+  .liab-btn.active-customer { background: var(--customer-bg); border-color: var(--customer); color: var(--customer); font-weight: 600; }
+  .panel-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .btn-primary { flex: 1; background: var(--ink); color: #fff; border: none; padding: 11px; border-radius: 3px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-secondary { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); padding: 11px 16px; border-radius: 3px; font-size: 14px; cursor: pointer; }
+  .btn-danger { background: transparent; color: var(--company); border: 1px solid var(--company); padding: 11px 16px; border-radius: 3px; font-size: 14px; cursor: pointer; }
+  .err { color: var(--company); font-size: 12px; margin-top: 4px; }
+  .loading-row { padding: 40px; text-align: center; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <h1>클레임 사례 대장</h1>
+      <p>사루와 · K&amp;B — 클레임 처리 기록 및 관리</p>
+    </div>
+    <button class="new-btn" onclick="openPanel()">+ 새 사례 등록</button>
+  </div>
+
+  <div class="conn-status" id="connStatus">Firebase 연결 확인 중...</div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input type="text" id="searchBox" placeholder="상품번호, 주문번호, 비고 검색" oninput="render()">
+    <select id="catFilter" onchange="render()">
+      <option value="">전체 분류</option>
+      <option value="품절/미입고">품절/미입고</option>
+      <option value="가격차이/배송비 보상">가격차이/배송비 보상</option>
+      <option value="오배송/상품문제">오배송/상품문제</option>
+      <option value="파손/불량">파손/불량</option>
+      <option value="단순변심/고객요청">단순변심/고객요청</option>
+      <option value="기타">기타</option>
+    </select>
+    <select id="liabFilter" onchange="render()">
+      <option value="">전체 책임소재</option>
+      <option value="회사귀책">회사귀책</option>
+      <option value="고객귀책">고객귀책</option>
+    </select>
+  </div>
+
+  <div id="tableWrap"><div class="loading-row">불러오는 중...</div></div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="panelTitle">새 사례 등록</h2>
+    <input type="hidden" id="editId">
+
+    <div class="row2">
+      <div class="field"><label>일자</label><input type="date" id="f_date"></div>
+      <div class="field"><label>상품번호</label><input type="text" id="f_product" placeholder="498679"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>원가</label><input type="number" id="f_cost" placeholder="0"></div>
+      <div class="field"><label>송료</label><input type="number" id="f_shipping" placeholder="0"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>수량</label><input type="text" id="f_qty" placeholder="1"></div>
+      <div class="field"><label>포인트 사용</label><input type="number" id="f_points" placeholder="0"></div>
+    </div>
+
+    <div class="field"><label>상품 총액(송료포함)</label><input type="number" id="f_total" placeholder="0"></div>
+
+    <div class="field">
+      <label>사례 분류</label>
+      <select id="f_category">
+        <option value="품절/미입고">품절/미입고</option>
+        <option value="가격차이/배송비 보상">가격차이/배송비 보상</option>
+        <option value="오배송/상품문제">오배송/상품문제</option>
+        <option value="파손/불량">파손/불량</option>
+        <option value="단순변심/고객요청">단순변심/고객요청</option>
+        <option value="기타">기타</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>책임소재</label>
+      <div class="liab-choice">
+        <button type="button" class="liab-btn" id="btn_company" onclick="setLiability('회사귀책')">회사귀책</button>
+        <button type="button" class="liab-btn" id="btn_customer" onclick="setLiability('고객귀책')">고객귀책</button>
+      </div>
+      <input type="hidden" id="f_liability" value="고객귀책">
+    </div>
+
+    <div class="field" id="reasonField" style="display:none;">
+      <label>책임소재 근거 (내부규정/판단 사유)</label>
+      <input type="text" id="f_reason" placeholder="예: CS응대 매뉴얼 3항 확인누락">
+    </div>
+
+    <div class="field">
+      <label>비고 (주문번호, 상황 설명)</label>
+      <textarea id="f_note" placeholder="예: z620325942, 국제배송 중 파손 확인"></textarea>
+    </div>
+
+    <div id="formErr" class="err" style="display:none;"></div>
+
+    <div class="panel-actions">
+      <button class="btn-primary" onclick="saveRecord()">저장</button>
+      <button class="btn-secondary" onclick="closePanel()">취소</button>
+      <button class="btn-danger" id="deleteBtn" style="display:none;" onclick="deleteRecord()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ==== 여기를 본인 Firebase 프로젝트 설정값으로 교체하세요 ====
+const firebaseConfig = {
+  apiKey: "AIzaSyCqowjrSSUw6pwlKqV15F3CMokDS75hZ6g",
+  authDomain: "saruwa-claims.firebaseapp.com",
+  projectId: "saruwa-claims",
+  storageBucket: "saruwa-claims.firebasestorage.app",
+  messagingSenderId: "595329563833",
+  appId: "1:595329563833:web:5c277fa778dd5794ba6f68"
+};
+// ============================================================
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const claimsCol = collection(db, "claims");
+
+let records = [];
+let loaded = false;
+let seedAttempted = false;
+
+const connEl = document.getElementById('connStatus');
+
+const SEED_RECORDS = [
+  {date:'2026-05-18',product:'498679',cost:'8580',shipping:'',qty:'2',points:'9000',total:'24700',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-18',product:'638916',cost:'1760',shipping:'',qty:'1',points:'0',total:'1760',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-19',product:'591809',cost:'770',shipping:'',qty:'1',points:'0',total:'3600',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-19',product:'591773',cost:'770',shipping:'',qty:'1',points:'0',total:'3999',category:'기타',liability:'고객귀책',reason:'',note:'중길-리틀2'},
+  {date:'2026-05-19',product:'585572',cost:'770',shipping:'',qty:'1',points:'0',total:'11111',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-19',product:'566284',cost:'770',shipping:'',qty:'1',points:'0',total:'2333',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-19',product:'564865',cost:'770',shipping:'',qty:'1',points:'0',total:'',category:'기타',liability:'고객귀책',reason:'',note:'중길-아이라2'},
+  {date:'2026-05-19',product:'563853',cost:'770',shipping:'',qty:'1',points:'0',total:'0',category:'기타',liability:'고객귀책',reason:'',note:'585572와 세트'},
+  {date:'2026-05-19',product:'563558',cost:'770',shipping:'',qty:'1',points:'0',total:'2399',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-19',product:'563413',cost:'770',shipping:'',qty:'3',points:'0',total:'11222',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-20',product:'591813',cost:'770',shipping:'',qty:'1',points:'659',total:'2000',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-05-26',product:'599710',cost:'22000',shipping:'',qty:'1',points:'0',total:'30900',category:'기타',liability:'고객귀책',reason:'',note:'2421236'},
+  {date:'2026-06-02',product:'566284',cost:'770',shipping:'',qty:'1',points:'0',total:'3990',category:'기타',liability:'고객귀책',reason:'',note:'m25749404409'},
+  {date:'2026-06-02',product:'566284',cost:'770',shipping:'',qty:'1',points:'3780',total:'3780',category:'기타',liability:'고객귀책',reason:'',note:''},
+  {date:'2026-06-03',product:'642905',cost:'5940',shipping:'710',qty:'1',points:'178',total:'6472',category:'기타',liability:'고객귀책',reason:'',note:'P186696673779622820'},
+  {date:'2026-06-08',product:'645632',cost:'13666',shipping:'',qty:'1',points:'2399',total:'8500',category:'기타',liability:'고객귀책',reason:'',note:'z620325942'},
+  {date:'2026-06-08',product:'631561',cost:'1',shipping:'594',qty:'1',points:'6599',total:'7194',category:'기타',liability:'고객귀책',reason:'',note:'53901995'},
+  {date:'2026-06-11',product:'445486',cost:'1920',shipping:'',qty:'1',points:'0',total:'1920',category:'품절/미입고',liability:'고객귀책',reason:'',note:'장기간 입고대기로 미수령 확인하여 구매실패'},
+  {date:'2026-06-11',product:'544219',cost:'2970',shipping:'',qty:'1/3',points:'2970',total:'4000',category:'기타',liability:'고객귀책',reason:'',note:'m39002720040'},
+  {date:'2026-06-15',product:'544219',cost:'2970',shipping:'',qty:'2/3',points:'2970',total:'4888',category:'기타',liability:'고객귀책',reason:'',note:'m34571898488'},
+  {date:'2026-06-15',product:'544219',cost:'2970',shipping:'',qty:'3/3',points:'2970',total:'4999',category:'기타',liability:'고객귀책',reason:'',note:'m92352775964'},
+  {date:'2026-06-15',product:'623094',cost:'770',shipping:'',qty:'1',points:'0',total:'2222',category:'기타',liability:'고객귀책',reason:'',note:'m10285908882'},
+  {date:'2026-06-24',product:'681746',cost:'2357',shipping:'330',qty:'1',points:'471',total:'2687',category:'기타',liability:'고객귀책',reason:'',note:'122268276'},
+  {date:'2026-06-24',product:'675938',cost:'3050',shipping:'',qty:'1',points:'0',total:'3230',category:'기타',liability:'고객귀책',reason:'',note:'1199004691'},
+  {date:'2026-06-27',product:'660542',cost:'2000',shipping:'682',qty:'1',points:'0',total:'2682',category:'기타',liability:'고객귀책',reason:'',note:'SN000012091679'},
+  {date:'2026-06-27',product:'648238',cost:'666',shipping:'0',qty:'1',points:'0',total:'666',category:'기타',liability:'고객귀책',reason:'',note:'사이버머니'},
+  {date:'2026-07-06',product:'675073',cost:'1290',shipping:'0',qty:'1',points:'0',total:'1290',category:'기타',liability:'고객귀책',reason:'',note:'1201490111'},
+  {date:'2026-07-29',product:'708910',cost:'300',shipping:'0',qty:'1',points:'0',total:'333',category:'기타',liability:'고객귀책',reason:'',note:'708910'},
+  {date:'2026-07-29',product:'712646',cost:'35695',shipping:'0',qty:'1',points:'0',total:'100000',category:'가격차이/배송비 보상',liability:'고객귀책',reason:'',note:'상품 차액, 국제배송비 포함 고객 요청으로 10만원 적립'},
+  {date:'2026-08-04',product:'655750',cost:'770',shipping:'0',qty:'1',points:'0',total:'3000',category:'기타',liability:'고객귀책',reason:'',note:'m95689830942'},
+  {date:'2026-08-04',product:'656291',cost:'770',shipping:'0',qty:'1',points:'4000',total:'4000',category:'기타',liability:'고객귀책',reason:'',note:'z653472884'},
+  {date:'2026-08-19',product:'618598',cost:'3850',shipping:'0',qty:'1',points:'3850',total:'7980',category:'기타',liability:'고객귀책',reason:'',note:'m57560370118'},
+  {date:'2026-08-21',product:'723324',cost:'2200',shipping:'0',qty:'1/2',points:'4000',total:'4000',category:'기타',liability:'고객귀책',reason:'',note:'z657369488'},
+  {date:'2026-08-21',product:'723324',cost:'2200',shipping:'0',qty:'2/2',points:'0',total:'4444',category:'기타',liability:'고객귀책',reason:'',note:'m64487386827'}
+];
+
+async function seedIfEmpty() {
+  if (seedAttempted) return;
+  seedAttempted = true;
+  try {
+    for (const rec of SEED_RECORDS) {
+      await addDoc(claimsCol, rec);
+    }
+  } catch (e) {
+    console.error('시드 데이터 추가 실패', e);
+  }
+}
+
+onSnapshot(claimsCol, (snapshot) => {
+  records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  loaded = true;
+  connEl.textContent = '실시간 연결됨 · 팀원 변경 사항이 자동으로 반영됩니다';
+  connEl.classList.remove('err');
+  if (snapshot.empty) {
+    seedIfEmpty();
+  }
+  render();
+}, (error) => {
+  connEl.textContent = 'Firebase 연결 오류: firebaseConfig 값과 Firestore 보안규칙을 확인하세요 (' + error.message + ')';
+  connEl.classList.add('err');
+  console.error(error);
+});
+
+function fmt(n) {
+  n = Number(n) || 0;
+  return n.toLocaleString('ko-KR');
+}
+
+window.render = function render() {
+  const wrap = document.getElementById('tableWrap');
+  const statsEl = document.getElementById('stats');
+
+  if (!loaded) {
+    wrap.innerHTML = '<div class="loading-row">불러오는 중...</div>';
+    return;
+  }
+
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const catF = document.getElementById('catFilter').value;
+  const liabF = document.getElementById('liabFilter').value;
+
+  let filtered = records.filter(r => {
+    if (catF && r.category !== catF) return false;
+    if (liabF && r.liability !== liabF) return false;
+    if (q) {
+      const hay = ((r.product || '') + ' ' + (r.note || '')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const totalCount = records.length;
+  const companyCount = records.filter(r => r.liability === '회사귀책').length;
+  const totalPoints = records.reduce((s, r) => s + (Number(r.points) || 0), 0);
+  const companyPct = totalCount ? Math.round((companyCount / totalCount) * 100) : 0;
+
+  statsEl.innerHTML = `
+    <div class="stat"><div class="num">${totalCount}건</div><div class="label">전체 사례</div></div>
+    <div class="stat"><div class="num">${companyCount}건 (${companyPct}%)</div><div class="label">회사귀책</div></div>
+    <div class="stat"><div class="num">${fmt(totalPoints)}</div><div class="label">누적 포인트 지급</div></div>
+    <div class="stat"><div class="num">${filtered.length}건</div><div class="label">현재 필터 결과</div></div>
+  `;
+
+  if (filtered.length === 0) {
+    wrap.innerHTML = '<div class="empty">기록된 사례가 없습니다. 오른쪽 위 버튼으로 등록해 보세요.</div>';
+    return;
+  }
+
+  let rows = filtered.map(r => `
+    <tr onclick="openPanel('${r.id}')">
+      <td>${r.date || ''}</td>
+      <td>${r.product || ''}</td>
+      <td><span class="tag tag-cat">${r.category || ''}</span></td>
+      <td><span class="tag ${r.liability === '회사귀책' ? 'tag-company' : 'tag-customer'}">${r.liability || ''}</span></td>
+      <td class="num-cell">${fmt(r.total)}</td>
+      <td class="num-cell">${fmt(r.points)}</td>
+      <td class="note-cell">${r.note || ''}</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>일자</th><th>상품번호</th><th>분류</th><th>책임소재</th><th>총액</th><th>포인트</th><th>비고</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+};
+
+window.setLiability = function setLiability(val) {
+  document.getElementById('f_liability').value = val;
+  document.getElementById('btn_company').className = 'liab-btn' + (val === '회사귀책' ? ' active-company' : '');
+  document.getElementById('btn_customer').className = 'liab-btn' + (val === '고객귀책' ? ' active-customer' : '');
+  document.getElementById('reasonField').style.display = val === '회사귀책' ? 'block' : 'none';
+};
+
+window.openPanel = function openPanel(id) {
+  document.getElementById('formErr').style.display = 'none';
+  document.getElementById('overlay').classList.add('open');
+
+  if (id) {
+    const r = records.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('panelTitle').textContent = '사례 수정';
+    document.getElementById('editId').value = r.id;
+    document.getElementById('f_date').value = r.date || '';
+    document.getElementById('f_product').value = r.product || '';
+    document.getElementById('f_cost').value = r.cost || '';
+    document.getElementById('f_shipping').value = r.shipping || '';
+    document.getElementById('f_qty').value = r.qty || '';
+    document.getElementById('f_points').value = r.points || '';
+    document.getElementById('f_total').value = r.total || '';
+    document.getElementById('f_category').value = r.category || '품절/미입고';
+    document.getElementById('f_reason').value = r.reason || '';
+    document.getElementById('f_note').value = r.note || '';
+    setLiability(r.liability || '고객귀책');
+    document.getElementById('deleteBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('panelTitle').textContent = '새 사례 등록';
+    document.getElementById('editId').value = '';
+    ['f_date','f_product','f_cost','f_shipping','f_qty','f_points','f_total','f_reason','f_note'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f_date').valueAsDate = new Date();
+    document.getElementById('f_category').value = '품절/미입고';
+    setLiability('고객귀책');
+    document.getElementById('deleteBtn').style.display = 'none';
+  }
+};
+
+window.closePanel = function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+};
+
+window.saveRecord = async function saveRecord() {
+  const date = document.getElementById('f_date').value;
+  const product = document.getElementById('f_product').value.trim();
+  const liability = document.getElementById('f_liability').value;
+  const reason = document.getElementById('f_reason').value.trim();
+  const errEl = document.getElementById('formErr');
+
+  if (!date) { errEl.textContent = '일자를 입력해 주세요.'; errEl.style.display = 'block'; return; }
+  if (!product) { errEl.textContent = '상품번호를 입력해 주세요.'; errEl.style.display = 'block'; return; }
+  if (liability === '회사귀책' && !reason) {
+    errEl.textContent = '회사귀책인 경우 판단 근거를 한 줄 입력해 주세요.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const id = document.getElementById('editId').value;
+  const rec = {
+    date, product,
+    cost: document.getElementById('f_cost').value,
+    shipping: document.getElementById('f_shipping').value,
+    qty: document.getElementById('f_qty').value,
+    points: document.getElementById('f_points').value,
+    total: document.getElementById('f_total').value,
+    category: document.getElementById('f_category').value,
+    liability, reason,
+    note: document.getElementById('f_note').value.trim()
+  };
+
+  try {
+    if (id) {
+      await updateDoc(doc(db, "claims", id), rec);
+    } else {
+      await addDoc(claimsCol, rec);
+    }
+    closePanel();
+  } catch (e) {
+    errEl.textContent = '저장 실패: ' + e.message;
+    errEl.style.display = 'block';
+  }
+};
+
+window.deleteRecord = async function deleteRecord() {
+  const id = document.getElementById('editId').value;
+  if (!id) return;
+  try {
+    await deleteDoc(doc(db, "claims", id));
+    closePanel();
+  } catch (e) {
+    alert('삭제 실패: ' + e.message);
+  }
+};
+
+document.getElementById('overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'overlay') closePanel();
+});
+</script>
+</body>
+</html>
